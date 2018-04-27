@@ -1,6 +1,6 @@
 # Telestats
 
-Analyze the telegram usage behavior of your contacts and sell the information to google. Or cambridge analytica.
+Analyze the telegram usage behavior of your contacts to sell the information to Google. Or Cambridge Analytica.
 
 ## Usage and how it works
 
