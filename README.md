@@ -1,6 +1,6 @@
 # Telestats
 
-Analyze the telegram usage behavior of your contacts and sell the information to google. Or cambridge analytica.
+Analyze the telegram usage behavior of your contacts to sell the information to Google. Or Cambridge Analytica.
 
 ## Usage and how it works
 
@@ -22,7 +22,7 @@ Analyze the telegram usage behavior of your contacts and sell the information to
    - The `-d` parameter activates the daemon mode and is needed to use the log functionality.
    - The `-L` parameter defined that and where (`capture01` in the above shown case) the output should be logged.
    - The `&` makes the process running in the background.
-     - If you use this and wanna close the terminal windows or the ssh session, you should disown this job before.
+     - If you use this and wanna close the terminal window or the ssh session, you should disown this job before.
      - Alternatively you can use tmux or screen for the process.
 4. Check wether the recording is working.
    - You can use tail (`tail -f path/to/your/capture.file`) to watch it and send a telegram message to yourself ("Saved Messages") to see if it's working.
@@ -33,9 +33,9 @@ Analyze the telegram usage behavior of your contacts and sell the information to
    python telestats.py path/to/your/capture.file Marcel #shows hourly stats
    ```
    - You don't have to stop the telegram-cli daemon.
-   - If somethis unexpected happens (e.g. completly wrong online stats), you can show all online status update information contained in the caputre file by using `--debug` as parameter
+   - If something unexpected happens (e.g. completly wrong online stats), you can show all online status update information contained in the caputre file by using `DEBUG` as parameter
      ```sh
-     python telestats.py path/to/your/capture.file --debug
+     python telestats.py path/to/your/capture.file DEBUG
      ```
 
 ## Why?
