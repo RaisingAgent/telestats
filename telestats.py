@@ -2,13 +2,18 @@
 
 import sys, json, datetime
 
+if len(sys.argv) < 2:
+	print 'Usage:\tpython '+sys.argv[0]+' FILE [NAME | DEBUG]'
+	print 'E.g.:\tpython '+sys.argv[0]+' path/to/your/capture.file Marcel'
+	print 'Or:\tpython '+sys.argv[0]+' path/to/your/capture.file DEBUG'
+	exit()
 
 onlinesince = {}
 onlinetime = {}
 onlinefrequency = {}
 
 debug = False
-if "--debug" in sys.argv: debug = True
+if len(sys.argv) > 2 and sys.argv[2] == 'DEBUG': debug = True
 
 def addOnlineTime(name,time,hour):
 	if not name in onlinetime: onlinetime[name] = {}
@@ -86,6 +91,8 @@ for name in onlinetime:
 	for k in range(3-(len(name)+1)/8): tabs += '\t'
 	print name, tabs, time, '\t', freq, '\t\t', time/freq
 
+
+if len(sys.argv) < 3 or sys.argv[2] == 'DEBUG': exit()
 
 try:
 	name = sys.argv[2]
