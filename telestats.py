@@ -11,11 +11,6 @@ debug = False
 if "--debug" in sys.argv: debug = True
 
 def addOnlineTime(name,time,hour):
-#	if name in onlinetime:
-#		onlinetime[name] += time
-#	else:
-#		onlinetime[name] = time
-
 	if not name in onlinetime: onlinetime[name] = {}
 	if hour in onlinetime[name]:
 		onlinetime[name][hour] += time
@@ -23,11 +18,6 @@ def addOnlineTime(name,time,hour):
 		onlinetime[name][hour] = time	
 
 def addOnlineFreq(name,hour):
-#	if name in onlinefrequency:
-#		onlinefrequency[name] += 1
-#	else:
-#		onlinefrequency[name] = 1
-
 	if not name in onlinefrequency: onlinefrequency[name] = {}
 	if hour in onlinefrequency[name]:
 		onlinefrequency[name][hour] += 1
