@@ -33,9 +33,9 @@ Analyze the telegram usage behavior of your contacts to sell the information to 
    python telestats.py path/to/your/capture.file Marcel #shows hourly stats
    ```
    - You don't have to stop the telegram-cli daemon.
-   - If something unexpected happens (e.g. completly wrong online stats), you can show all online status update information contained in the caputre file by using `--debug` as parameter
+   - If something unexpected happens (e.g. completly wrong online stats), you can show all online status update information contained in the caputre file by using `DEBUG` as parameter
      ```sh
-     python telestats.py path/to/your/capture.file --debug
+     python telestats.py path/to/your/capture.file DEBUG
      ```
 
 ## Why?
