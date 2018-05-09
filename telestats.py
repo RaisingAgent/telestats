@@ -1,33 +1,36 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import sys, json, datetime
+from tabulate import tabulate
 
 if len(sys.argv) < 2:
-	print 'Usage:\tpython '+sys.argv[0]+' FILE [NAME | DEBUG]'
-	print 'E.g.:\tpython '+sys.argv[0]+' path/to/your/capture.file Marcel'
-	print 'Or:\tpython '+sys.argv[0]+' path/to/your/capture.file DEBUG'
+	print('Usage:\tpython '+sys.argv[0]+' FILE [NAME | DEBUG]')
+	print('E.g.:\tpython '+sys.argv[0]+' path/to/your/capture.file Marcel')
+	print('Or:\tpython '+sys.argv[0]+' path/to/your/capture.file DEBUG')
 	exit()
 
 onlinesince = {}
-onlinetime = {}
-onlinefrequency = {}
+onlinetime = {}			# onlinetime[name][dotw][hotd] (dotw = day of the week, hotd = hour of the day)
+onlinefrequency = {}	# onlinefrequency[name][dotw][hotd]
 
 debug = False
 if len(sys.argv) > 2 and sys.argv[2] == 'DEBUG': debug = True
 
-def addOnlineTime(name,time,hour):
+def addOnlineTime(name,time,dotw,hotd):
 	if not name in onlinetime: onlinetime[name] = {}
-	if hour in onlinetime[name]:
-		onlinetime[name][hour] += time
+	if not dotw in onlinetime[name]: onlinetime[name][dotw] = {}
+	if hotd in onlinetime[name][dotw]:
+		onlinetime[name][dotw][hotd] += time
 	else:
-		onlinetime[name][hour] = time	
+		onlinetime[name][dotw][hotd] = time	
 
-def addOnlineFreq(name,hour):
+def addOnlineFreq(name,dotw,hotd):
 	if not name in onlinefrequency: onlinefrequency[name] = {}
-	if hour in onlinefrequency[name]:
-		onlinefrequency[name][hour] += 1
+	if not dotw in onlinefrequency[name]: onlinefrequency[name][dotw] = {}
+	if hotd in onlinefrequency[name][dotw]:
+		onlinefrequency[name][dotw][hotd] += 1
 	else:
-		onlinefrequency[name][hour] = 1
+		onlinefrequency[name][dotw][hotd] = 1
 
 
 
@@ -42,12 +45,13 @@ with open(sys.argv[1]) as f:
 			try:
 				data = json.loads(line)
 				if data['event'] == 'online-status':
-					if debug: print data['when'], ':', data['user']['print_name'], 'ist nun', 'online' if data['online'] else 'offline'
+					if debug: print(data['when'], ':', data['user']['print_name'], 'ist nun', 'online' if data['online'] else 'offline')
 
 					name = data['user']['print_name']
 					online = data['online']
 					when = getTime(data['when'])
-					hour = datetime.datetime.strftime(when,'%H')
+					dotw = datetime.datetime.strftime(when,'%w')
+					hotd = datetime.datetime.strftime(when,'%H')
 
 					if online:
 						when -= datetime.timedelta(minutes=5) #for some reason the timestamp when someone is online is exactly 5 minutes in the future.
@@ -57,12 +61,12 @@ with open(sys.argv[1]) as f:
 					end = when
 
 					if online:
-						addOnlineFreq(name,hour)
+						addOnlineFreq(name,dotw,hotd)
 						onlinesince[name] = when
 					else:
 						if name in onlinesince and onlinesince[name] is not None:
 							newTime = when-onlinesince[name]
-							addOnlineTime(name,when-onlinesince[name],hour)
+							addOnlineTime(name,when-onlinesince[name],dotw,hotd)
 							onlinesince[name] = None
 
 
@@ -70,35 +74,88 @@ with open(sys.argv[1]) as f:
 				pass
 
 if not 'start' in globals():
-	print "Keine Online Daten erfasst,"
+	print("Keine Online Daten erfasst.")
 	exit()
 
-print
-print '\033[4mStart:\033[0m\t\t', start
-print '\033[4mEnd:\033[0m\t\t', end
-print '\033[4mDuration:\033[0m\t',end-start
-print
+print('\n\033[4mStart:\033[0m\t\t', start)
+print('\033[4mEnd:\033[0m\t\t', end)
+print('\033[4mDuration:\033[0m\t', end-start, '\n')
 
 
-print '\033[4mName\t\t\tDuration\tFrequency\tDuration average\033[0m'
-
+botdays = (end-start).total_seconds()/60/60/24
+headers = ['Name', 'Duration', 'Frequency', 'Duration average', 'Duration / Day', 'Frequency / Day']
+rows = []
 for name in onlinetime:
-	freq = sum(onlinefrequency[name].values())
+	freq = sum([sum(x.values()) for x in onlinefrequency[name].values()])
 	time = datetime.timedelta()
-	for hour in onlinetime[name]:
-		time += onlinetime[name][hour]
-	tabs = ""
-	for k in range(3-(len(name)+1)/8): tabs += '\t'
-	print name, tabs, time, '\t', freq, '\t\t', time/freq
+	for dotw in onlinetime[name]:
+		for hotd in onlinetime[name][dotw]:
+			time += onlinetime[name][dotw][hotd]
+	rows.append([name,time,freq,time/freq,time/botdays,freq/botdays])
+rows = sorted(rows, key=lambda x: x[1])
+print(tabulate(rows, headers=headers, tablefmt='simple'))
 
 
 if len(sys.argv) < 3 or sys.argv[2] == 'DEBUG': exit()
 
+def getIndicator(percentage):
+	if percentage < 1/10: return '\033[2;32m░\033[0m'
+	if percentage < 2/10: return '\033[2;32m▒\033[0m'
+	if percentage < 3/10: return '\033[2;32m▓\033[0m'
+	if percentage < 4/10: return '\033[2;32m█\033[0m'
+	if percentage < 5/10: return '\033[0;32m▒\033[0m'
+	if percentage < 6/10: return '\033[0;32m▓\033[0m'
+	if percentage < 7/10: return '\033[0;32m█\033[0m'
+	if percentage < 8/10: return '\033[0;92m▒\033[0m'
+	if percentage < 9/10: return '\033[0;92m▓\033[0m'
+	return '\033[0;92m█\033[0m'
+
 try:
 	name = sys.argv[2]
-	print '\nDetails of', name+':'
-	print '\033[4mTime\t\tDuration\tFrequency:\033[0m'
-	for hour in onlinetime[name]:
-		print hour, 'o\'clock\t', onlinetime[name][hour], '\t', onlinefrequency[name][hour]
+	print('\nDetails of', name+':')
+
+	freq = [[0]*24 for i in range(7)]
+	for dotw in onlinefrequency[name]:
+		for hotd in onlinefrequency[name][dotw]:
+			freq[int(dotw)][int(hotd)] = onlinefrequency[name][dotw][hotd]
+
+	time = [[datetime.timedelta()]*24 for i in range(7)]
+	for dotw in onlinetime[name]:
+		for hotd in onlinetime[name][dotw]:
+			time[int(dotw)][int(hotd)] = onlinetime[name][dotw][hotd]
+
+	totalTotalFreq = sum([sum(x) for x in freq])
+	totalTotalTime = datetime.timedelta()
+	for i in time:
+		for j in i:
+			totalTotalTime += j
+
+	rows = []
+	for hotd in range(24):
+		row = [hotd]
+		for dotw in range(7):
+			row.append(str(time[dotw][hotd]) + ' ' + getIndicator(time[dotw][hotd]/(totalTotalTime/15)) + ' ' + getIndicator(freq[dotw][hotd]/(totalTotalFreq/15)) + ' ' + str(freq[dotw][hotd]))
+		totalFreq = sum([x[hotd] for x in freq])
+		totalTime = datetime.timedelta()
+		for i in [x[hotd] for x in time]:
+			totalTime += i
+		row.append(str(totalTime) + '     ' + str(totalFreq))
+		rows.append(row)
+	row = ['Total']
+	for dotw in range(7):
+		totalFreq = sum(freq[dotw])
+		totalTime = datetime.timedelta()
+		for i in time[dotw]:
+			totalTime += i
+		row.append(str(totalTime) + '     ' + str(totalFreq))
+	
+	row.append(str(totalTotalTime) + '     ' + str(totalTotalFreq)) 
+	rows.append(row)
+
+	headers = ['Hour of the day','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Total']
+	print(tabulate(rows, headers=headers, tablefmt='pipe'))
+
+
+
 except:
 	pass
