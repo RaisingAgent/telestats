@@ -94,16 +94,9 @@ rows = sorted(rows, key=lambda x: x[args.sort])
 print(tabulate(rows, headers=headers, tablefmt='simple'))
 
 def getIndicator(percentage):
-	if percentage < 1/10: return '\033[2;32m░\033[0m'
-	if percentage < 2/10: return '\033[2;32m▒\033[0m'
-	if percentage < 3/10: return '\033[2;32m▓\033[0m'
-	if percentage < 4/10: return '\033[2;32m█\033[0m'
-	if percentage < 5/10: return '\033[0;32m▒\033[0m'
-	if percentage < 6/10: return '\033[0;32m▓\033[0m'
-	if percentage < 7/10: return '\033[0;32m█\033[0m'
-	if percentage < 8/10: return '\033[0;92m▒\033[0m'
-	if percentage < 9/10: return '\033[0;92m▓\033[0m'
-	return '\033[0;92m█\033[0m'
+	indicatorPart = ['2;32m░','2;32m▒','2;32m▓','2;32m█','0;32m▒','0;32m▓','0;32m█','0;92m▒','0;92m▓','0;92m█']
+	i = int(percentage*10)
+	return '\033['+indicatorPart[i if i < 10 else 9]+'\033[0m'
 
 if args.details:
 	name = args.details
