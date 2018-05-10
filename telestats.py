@@ -1,20 +1,18 @@
 #!/usr/bin/python3
 
-import sys, json, datetime
+import sys, json, datetime, argparse
 from tabulate import tabulate
 
-if len(sys.argv) < 2:
-	print('Usage:\tpython '+sys.argv[0]+' FILE [NAME | DEBUG]')
-	print('E.g.:\tpython '+sys.argv[0]+' path/to/your/capture.file Marcel')
-	print('Or:\tpython '+sys.argv[0]+' path/to/your/capture.file DEBUG')
-	exit()
+parser = argparse.ArgumentParser(description='Analyze your friends telegram usage behavior')
+parser.add_argument('file', help='path to the log file')
+parser.add_argument('-D', '--debug', action='store_true', help='prints debug stuff')
+parser.add_argument('-d', '--details', metavar='name', help='show usage details of a particular person')
+parser.add_argument('-s', '--sort', type=int, choices=range(6), default=1, help='sort list by [0: name, 1: duration, 2: frequency, ...]')
+args = parser.parse_args()
 
 onlinesince = {}
 onlinetime = {}			# onlinetime[name][dotw][hotd] (dotw = day of the week, hotd = hour of the day)
 onlinefrequency = {}	# onlinefrequency[name][dotw][hotd]
-
-debug = False
-if len(sys.argv) > 2 and sys.argv[2] == 'DEBUG': debug = True
 
 def addOnlineTime(name,time,dotw,hotd):
 	if not name in onlinetime: onlinetime[name] = {}
@@ -38,14 +36,14 @@ def addOnlineFreq(name,dotw,hotd):
 def getTime(time):
 	return datetime.datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
 
-with open(sys.argv[1]) as f:
+with open(args.file) as f:
 	for line in f:
 		line = line.replace('\n','')
 		if line[-1:] == '}' and line[:1] == '{':
 			try:
 				data = json.loads(line)
 				if data['event'] == 'online-status':
-					if debug: print(data['when'], ':', data['user']['print_name'], 'ist nun', 'online' if data['online'] else 'offline')
+					if args.debug: print(data['when'], ':', data['user']['print_name'], 'ist nun', 'online' if data['online'] else 'offline')
 
 					name = data['user']['print_name']
 					online = data['online']
@@ -92,11 +90,8 @@ for name in onlinetime:
 		for hotd in onlinetime[name][dotw]:
 			time += onlinetime[name][dotw][hotd]
 	rows.append([name,time,freq,time/freq,time/botdays,freq/botdays])
-rows = sorted(rows, key=lambda x: x[1])
+rows = sorted(rows, key=lambda x: x[args.sort])
 print(tabulate(rows, headers=headers, tablefmt='simple'))
-
-
-if len(sys.argv) < 3 or sys.argv[2] == 'DEBUG': exit()
 
 def getIndicator(percentage):
 	if percentage < 1/10: return '\033[2;32m░\033[0m'
@@ -110,8 +105,8 @@ def getIndicator(percentage):
 	if percentage < 9/10: return '\033[0;92m▓\033[0m'
 	return '\033[0;92m█\033[0m'
 
-try:
-	name = sys.argv[2]
+if args.details:
+	name = args.details
 	print('\nDetails of', name+':')
 
 	freq = [[0]*24 for i in range(7)]
@@ -154,8 +149,3 @@ try:
 
 	headers = ['Hour of the day','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday','Total']
 	print(tabulate(rows, headers=headers, tablefmt='pipe'))
-
-
-
-except:
-	pass
