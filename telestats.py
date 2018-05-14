@@ -8,6 +8,7 @@ parser.add_argument('file', help='path to the log file') # type=argparse.FileTyp
 parser.add_argument('--debug', action='store_true', help='prints debug stuff')
 parser.add_argument('--fullname', action='store_true', help='prints the full name of all users (instead of the 1st 50 chars)')
 parser.add_argument('-d', '--details', metavar='name', help='show hourly usage details of a particular person. (-d all for hourly details of all tracked users)')
+parser.add_argument('--username', metavar='name', help='prints the username of a specific person.')
 parser.add_argument('-s', '--sort', type=int, choices=range(6), default=1, help='sort list by [0: name, 1: duration, 2: frequency, ...]')
 parser.add_argument('-i', '--info', action='store_true', help='Prints only the info')
 parser.add_argument('--ignore', metavar='name', nargs='+', help='Ignores specific users.')
@@ -58,6 +59,11 @@ with open(args.file) as f:
 					if args.debug: print(data['when'], ':', data['user']['print_name'], 'ist nun', 'online' if data['online'] else 'offline')
 
 					name = data['user']['print_name']
+					if args.username != None: #
+						if name == args.username:
+							print('\n\nName:\t\t' + args.username)
+							print('Username:\t' + data['user']['username'])
+							sys.exit()
 					if args.ignore != None and name in args.ignore: continue
 					online = data['online']
 					when = getTime(data['when'])
@@ -81,11 +87,15 @@ with open(args.file) as f:
 							onlinesince[name] = None
 
 
-			except:
+			except Exception as e:
 				pass
 
 if not 'start' in globals():
 	print("Keine Online Daten erfasst.")
+	exit()
+
+if args.username != None:
+	print('\n\nNo username for ' + args.username + ' found.')
 	exit()
 
 for name in [x for x in onlinesince if onlinesince[x] != None]:
