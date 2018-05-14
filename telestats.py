@@ -11,28 +11,30 @@ parser.add_argument('-d', '--details', metavar='name', help='show hourly usage d
 parser.add_argument('--username', metavar='name', help='prints the username of a specific person.')
 parser.add_argument('-s', '--sort', type=int, choices=range(6), default=1, help='sort list by [0: name, 1: duration, 2: frequency, ...]')
 parser.add_argument('-i', '--info', action='store_true', help='Prints only the info')
+parser.add_argument('--durationinfo', action='store_true', help='Prints only the info about the duration. Faster in case of a big log file')
 parser.add_argument('--ignore', metavar='name', nargs='+', help='Ignores specific users.')
 args = parser.parse_args()
 
 onlinesince = {}
-onlinetime = {}			# onlinetime[name][dotw][hotd] (dotw = day of the week, hotd = hour of the day)
-onlinefrequency = {}	# onlinefrequency[name][dotw][hotd]
+onlinetime = {}			# onlinetime[peerid][dotw][hotd] (dotw = day of the week, hotd = hour of the day)
+onlinefrequency = {}	# onlinefrequency[peerid][dotw][hotd]
+printname = {}
 
-def addOnlineTime(name,time,dotw,hotd):
-	if not name in onlinetime: onlinetime[name] = {}
-	if not dotw in onlinetime[name]: onlinetime[name][dotw] = {}
-	if hotd in onlinetime[name][dotw]:
-		onlinetime[name][dotw][hotd] += time
+def addOnlineTime(peerid,time,dotw,hotd):
+	if not peerid in onlinetime: onlinetime[peerid] = {}
+	if not dotw in onlinetime[peerid]: onlinetime[peerid][dotw] = {}
+	if hotd in onlinetime[peerid][dotw]:
+		onlinetime[peerid][dotw][hotd] += time
 	else:
-		onlinetime[name][dotw][hotd] = time	
+		onlinetime[peerid][dotw][hotd] = time	
 
-def addOnlineFreq(name,dotw,hotd):
-	if not name in onlinefrequency: onlinefrequency[name] = {}
-	if not dotw in onlinefrequency[name]: onlinefrequency[name][dotw] = {}
-	if hotd in onlinefrequency[name][dotw]:
-		onlinefrequency[name][dotw][hotd] += 1
+def addOnlineFreq(peerid,dotw,hotd):
+	if not peerid in onlinefrequency: onlinefrequency[peerid] = {}
+	if not dotw in onlinefrequency[peerid]: onlinefrequency[peerid][dotw] = {}
+	if hotd in onlinefrequency[peerid][dotw]:
+		onlinefrequency[peerid][dotw][hotd] += 1
 	else:
-		onlinefrequency[name][dotw][hotd] = 1
+		onlinefrequency[peerid][dotw][hotd] = 1
 
 
 def getTime(time):
@@ -41,16 +43,18 @@ def getTime(time):
 
 num_lines = sum(1 for line in open(args.file))
 count_lines = 0
+print('\033[4mRows:\033[0m\t\t', num_lines)
 
 with open(args.file) as f:
 	for line in f:
-		if (count_lines % (num_lines/1000.) > (count_lines+1) % (num_lines/1000.)):
-			if 'progress' in globals(): sys.stdout.write('\b' * (len(progress) + 1))
-			else: sys.stdout.write('Loading: ')
-			progress = str(round(count_lines / float(num_lines) * 100, 2))
-			sys.stdout.write(progress + '%')
-			sys.stdout.flush()
 		count_lines += 1
+		if args.durationinfo and count_lines > 1000 and num_lines - count_lines > 1000: continue 
+		if (count_lines % (num_lines/1000.) > (count_lines+1) % (num_lines/1000.)):
+			if 'progress' in globals(): sys.stdout.write('\b' * (len(progress)))
+			else: sys.stdout.write('\033[4mLoading:\033[0m\t')
+			progress = ' ' + str(round(count_lines / float(num_lines) * 100, 2)) + '%'
+			sys.stdout.write(progress)
+			sys.stdout.flush()
 		line = line.replace('\n','')
 		if line[-1:] == '}' and line[:1] == '{':
 			try:
@@ -58,17 +62,8 @@ with open(args.file) as f:
 				if data['event'] == 'online-status':
 					if args.debug: print(data['when'], ':', data['user']['print_name'], 'ist nun', 'online' if data['online'] else 'offline')
 
-					name = data['user']['print_name']
-					if args.username != None: #
-						if name == args.username:
-							print('\n\nName:\t\t' + args.username)
-							print('Username:\t' + data['user']['username'])
-							sys.exit()
-					if args.ignore != None and name in args.ignore: continue
 					online = data['online']
-					when = getTime(data['when'])
-					dotw = datetime.datetime.strftime(when,'%w')
-					hotd = datetime.datetime.strftime(when,'%H')
+					when = getTime(data['when']) # TODO: recently, last week, ... -> offline
 
 					if online:
 						when -= datetime.timedelta(minutes=5) #for some reason the timestamp when someone is online is exactly 5 minutes in the future.
@@ -77,14 +72,27 @@ with open(args.file) as f:
 						start = when
 					end = when
 
+					if args.durationinfo: continue
+
+					peerid = data['user']['peer_id']
+					printname[peerid] = data['user']['print_name']
+					if args.username != None: #
+						if printname[peerid] == args.username:
+							print('\n\nName:\t\t' + args.username)
+							print('Username:\t' + data['user']['username'])
+							exit()
+					if args.ignore != None and printname[peerid] in args.ignore: continue
+					dotw = datetime.datetime.strftime(when,'%w')
+					hotd = datetime.datetime.strftime(when,'%H')
+
 					if online:
-						addOnlineFreq(name,dotw,hotd)
-						onlinesince[name] = when
+						addOnlineFreq(peerid,dotw,hotd)
+						onlinesince[peerid] = when
 					else:
-						if name in onlinesince and onlinesince[name] is not None:
-							newTime = when-onlinesince[name]
-							addOnlineTime(name,when-onlinesince[name],dotw,hotd)
-							onlinesince[name] = None
+						if peerid in onlinesince and onlinesince[peerid] is not None:
+							newTime = when-onlinesince[peerid]
+							addOnlineTime(peerid,when-onlinesince[peerid],dotw,hotd)
+							onlinesince[peerid] = None
 
 
 			except Exception as e:
@@ -98,26 +106,26 @@ if args.username != None:
 	print('\n\nNo username for ' + args.username + ' found.')
 	exit()
 
-for name in [x for x in onlinesince if onlinesince[x] != None]:
-	dotw = datetime.datetime.strftime(end, '%w')
-	hotd = datetime.datetime.strftime(end, '%H')
-	addOnlineTime(name, end - onlinesince[name], dotw, hotd) 
-
 print('\n\n\033[4mStart:\033[0m\t\t', start)
 print('\033[4mEnd:\033[0m\t\t', end)
 print('\033[4mDuration:\033[0m\t', end-start)
+if args.durationinfo: exit()
 
+for peerid in [x for x in onlinesince if onlinesince[x] != None]:
+	dotw = datetime.datetime.strftime(end, '%w')
+	hotd = datetime.datetime.strftime(end, '%H')
+	addOnlineTime(peerid, end - onlinesince[peerid], dotw, hotd) 
 
 botdays = (end-start).total_seconds()/60/60/24
 headers = ['Name', 'Duration', 'Frequency', 'Duration average', 'Duration / Day', 'Frequency / Day', 'Online']
 rows = []
-for name in onlinetime:
-	freq = sum([sum(x.values()) for x in onlinefrequency[name].values()])
+for peerid in onlinetime:
+	freq = sum([sum(x.values()) for x in onlinefrequency[peerid].values()])
 	time = datetime.timedelta()
-	for dotw in onlinetime[name]:
-		for hotd in onlinetime[name][dotw]:
-			time += onlinetime[name][dotw][hotd]
-	rows.append([name if args.fullname else name[:50],time,freq,time/freq,time/botdays,freq/botdays,name in onlinesince and onlinesince[name] is not None])
+	for dotw in onlinetime[peerid]:
+		for hotd in onlinetime[peerid][dotw]:
+			time += onlinetime[peerid][dotw][hotd]
+	rows.append([printname[peerid] if args.fullname else printname[peerid][:50],time,freq,time/freq,time/botdays,freq/botdays,peerid in onlinesince and onlinesince[peerid] is not None])
 print('\033[4mUsers:\033[0m\t\t', len(rows))
 print('\033[4mOnline:\033[0m\t\t', len([x for x in onlinesince if onlinesince[x] is not None]), '\n')
 rows = sorted(rows, key=lambda x: x[args.sort])
@@ -137,28 +145,34 @@ if args.details:
 	freq = [[0]*24 for i in range(7)]
 	time = [[datetime.timedelta()]*24 for i in range(7)]
 	if name == 'all':
-		for name in onlinefrequency:
-			for dotw in onlinefrequency[name]:
-				for hotd in onlinefrequency[name][dotw]:
-					freq[int(dotw)][int(hotd)] += onlinefrequency[name][dotw][hotd] #/ len(rows)
-		for name in onlinetime:
-			for dotw in onlinetime[name]:
-				for hotd in onlinetime[name][dotw]:
-					time[int(dotw)][int(hotd)] += onlinetime[name][dotw][hotd] #/ len(rows)
+		for peerid in onlinefrequency:
+			for dotw in onlinefrequency[peerid]:
+				for hotd in onlinefrequency[peerid][dotw]:
+					freq[int(dotw)][int(hotd)] += onlinefrequency[peerid][dotw][hotd] #/ len(rows)
+		for peerid in onlinetime:
+			for dotw in onlinetime[peerid]:
+				for hotd in onlinetime[peerid][dotw]:
+					time[int(dotw)][int(hotd)] += onlinetime[peerid][dotw][hotd] #/ len(rows)
 	else:
-		if name in onlinefrequency:
-			for dotw in onlinefrequency[name]:
-				for hotd in onlinefrequency[name][dotw]:
-					freq[int(dotw)][int(hotd)] += onlinefrequency[name][dotw][hotd]
-		if name in onlinetime:
-			for dotw in onlinetime[name]:
-				for hotd in onlinetime[name][dotw]:
-					time[int(dotw)][int(hotd)] += onlinetime[name][dotw][hotd]
+		peerid = 0
+		for i in printname:
+			if name == printname[i]: peerid = i
+		if peerid == 0:
+			print('Kein Eintrag von', name, 'vorhanden')
+			exit()
+		if peerid in onlinefrequency:
+			for dotw in onlinefrequency[peerid]:
+				for hotd in onlinefrequency[peerid][dotw]:
+					freq[int(dotw)][int(hotd)] += onlinefrequency[peerid][dotw][hotd]
+		if peerid in onlinetime:
+			for dotw in onlinetime[peerid]:
+				for hotd in onlinetime[peerid][dotw]:
+					time[int(dotw)][int(hotd)] += onlinetime[peerid][dotw][hotd]
 
 
-	if (sum(sum(x) for x in freq) == 0 and sum([sum(y.total_seconds() for y in x) for x in time]) == 0.):
-		print('Kein Eintrag von', name, 'vorhanden.')
-		exit()
+#	if (sum(sum(x) for x in freq) == 0 and sum([sum(y.total_seconds() for y in x) for x in time]) == 0.):
+#		print('Kein Eintrag von', name, 'vorhanden.')
+#		exit()
 
 
 	totalTotalFreq = sum([sum(x) for x in freq])
