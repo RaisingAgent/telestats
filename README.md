@@ -1,6 +1,6 @@
 # Telestats
 
-Analyze the telegram usage behavior of your contacts to sell the information to Google. Or Cambridge Analytica.
+Analyze the telegram usage behavior of your contacts and members of public groups to sell the information to Google. Or Cambridge Analytica.
 
 ## Usage and how it works
 
@@ -10,14 +10,14 @@ Analyze the telegram usage behavior of your contacts to sell the information to 
    ```sh
    path/to/your/telegram-cli --json -WRdL capture01 &
    ```
-   - The `--json` parameter says the telegram-cli the we want the output to be in the json format.
+   - The `--json` parameter tells the telegram-cli the we want the output to be in the json format.
    - The `-W` parameter makes the telegram-cli to send a `dialog_list` query.
      - This is necessary because we get the online status update only from the users we have interacted with.
      - So we get only the status update from users we have chatted with.
      - If you want to capture the status update of all your contacts you have to find a way to send a `contact_list` query.
-       - One way would be using the `-P` parameter to make the telegram-cli listening on a tcp port and send the query with netcat.
+       - One way would be using the `-P` parameter to make the telegram-cli listen on a tcp port and send the query with netcat.
        - If you find a better way (e.g. with pipes) you can write a comment or edit the run.sh and make a pull request.
-   - The `-R` parameter is necessary because it causes a linebreak the stringified json objects.
+   - The `-R` parameter is necessary because it causes a linebreak between the stringified json objects.
      - You can see the difference using cat -n path/to/your/capture.file
    - The `-d` parameter activates the daemon mode and is needed to use the log functionality.
    - The `-L` parameter defined that and where (`capture01` in the above shown case) the output should be logged.
@@ -33,25 +33,25 @@ Analyze the telegram usage behavior of your contacts to sell the information to 
    python telestats.py path/to/your/capture.file -d Marcel #shows hourly stats
    ```
    - You don't have to stop the telegram-cli daemon.
-   - If something unexpected happens (e.g. completly wrong online stats), you can show all online status update information contained in the caputre file by using `--debug` as parameter
-     ```sh
-     python telestats.py path/to/your/capture.file --debug
-     ```
+   - Check the help (`-h` or `--help`) for some usefull features.
+   ```sh
+   python telestats.py -h
+   ```
 
 ## Why?
 I like terminals.
 
-Telegram is a lot better than Whatsapp. (serverside, bots, open source, ...)
+Telegram is a lot better than Whatsapp. (serverside, bots, open source, custom styles,  ...)
 
-I have a little netbook (this one on my profile pic) with 2 gigs of RAM.
+I have a little netbook with 2 gigs of RAM (this one on my profile pic).
 
-That's why I've tried the telegram-cli and I love it. It's not as comfortable as the graphical client, but ist in a terminal. And it needs no RAM. Terminals are so productive!
+That's why I've tried the telegram-cli and I love it. It's not as comfortable as the graphical client, but it is in a terminal. And it needs no RAM. Terminals are so productive!
 
-Using this cli I noticed that I get every time if somebody is now online or offline a message. Of course I get - because on my phone I see if somebody is online and somehow my phone has to get these information.
+Anyway, using this cli I noticed that I get whenever somebody is now online or offline a message. Of course I get - because on my phone I see if somebody is online and somehow my phone has to get these information.
 
 Since than I thought it would be very interesting to record these information and analyze them.
 
-I thinks the fewest telegram users know that everyone who has their number could create statistics about their telegram usage behavior.
+I thinks the fewest telegram users know that everyone who has their number [(or if they are in a big public group)](bigdata.md) could create statistics about their telegram usage behavior.
 
 
 ## Credits
