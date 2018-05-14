@@ -37,6 +37,13 @@ Analyze the telegram usage behavior of your contacts and members of public group
    ```sh
    python telestats.py -h
    ```
+   - Check the [output examples](output-examples.md) for some usage examples.
+
+## Big data
+Take a look at the [bigdata.md](bigdata.md)
+
+## Examples
+Take a look at the [output-examples.md](output-examples.md)
 
 ## Why?
 I like terminals.
