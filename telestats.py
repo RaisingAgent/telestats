@@ -99,7 +99,7 @@ with open(args.file) as f:
 				pass
 
 if not 'start' in globals():
-	print("Keine Online Daten erfasst.")
+	print("No online data found.")
 	exit()
 
 if args.username != None:
@@ -158,7 +158,7 @@ if args.details:
 		for i in printname:
 			if name == printname[i]: peerid = i
 		if peerid == 0:
-			print('Kein Eintrag von', name, 'vorhanden')
+			print(name, 'not found.')
 			exit()
 		if peerid in onlinefrequency:
 			for dotw in onlinefrequency[peerid]:
