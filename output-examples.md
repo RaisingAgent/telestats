@@ -109,7 +109,7 @@ The summary will be as long as much users there are. So if you only want to see 
 `telestats.py log/bigdata -i`
 ```
 Rows:            1310817
-Loading:         100.1%
+Loading:         100.0%
 
 Start:           2018-05-13 19:50:42
 End:             2018-05-14 21:15:25
